@@ -1,0 +1,775 @@
+---
+title: "Final Project"
+author: "Bamdad Booyeh"
+date: "2024-01-13"
+output:
+    html_document:
+      self_contained: yes
+      theme: yeti
+      toc: true
+      toc_float: true
+      code_folding: hide
+editor_options: 
+  markdown: 
+    wrap: 72
+    
+---
+
+
+
+![](Downloads/Google Download/Photo.png)
+
+# World Data Analysis Project
+
+Welcome to the World Data Analysis project! My primary objective is to navigate through the intricacies of global data, unraveling patterns and stories using a myriad of data visualization techniques. For this exploration, we have meticulously curated datasets from Kaggle, a leading platform for datasets and data science resources.
+
+## Datasets Overview
+
+Our analytical journey is fueled by two datasets:
+
+1. **Countries of the World 2023 Dataset:**
+   - Source: [Countries of the World 2023 Dataset](https://www.kaggle.com/datasets/nelgiriyewithana/countries-of-the-world-2023)
+   - A detailed exploration of various aspects of countries in the year 2023, this dataset serves as a valuable resource for our analysis.
+
+2. **Population Collapse Dataset:**
+   - Source: [Population Collapse Dataset](https://www.kaggle.com/datasets/saadaziz1985/population-collapse)
+   - This dataset provides a comprehensive view of population dynamics, offering insights into trends and changes over time.
+
+ **Additional Research Source**
+
+In addition to our curated datasets, we draw insights from a research article titled "Does tertiary education expansion affect the fertility of women past the college-entry age?" ([Link to Research](https://www.sciencedirect.com/science/article/pii/S0167268123002329)).
+
+
+**Aim**
+
+The overarching aim of this project is to conduct a comprehensive analysis of global data using advanced data visualization techniques. By harnessing diverse datasets obtained from Kaggle, we aim to uncover patterns, trends, and interrelationships within the data. Through a combination of statistical analysis and visual representation, our goal is to provide valuable insights into key aspects such as population dynamics, economic indicators, and socio-demographic factors.
+
+
+![](Downloads/Google Download/Photo1.jpeg)
+
+
+
+```{r loading packeges, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(sf)
+library(rnaturalearth)
+library(viridis)
+library(ggradar)
+library(plotly)
+library(rvest)
+library(tm)
+library(wordcloud)
+library(quanteda)
+library(readtext)
+library(RColorBrewer)
+library(wordcloud2)
+library(hexbin)
+
+# Read birth rate data 
+time_birth_data <- read_csv('/Users/bamdadbooyeh/Documents/BAMDAD BOOYEH FINAL PROJECT/total_birth_rate.csv' )
+
+# Read death rate data 
+time_death_data <- read_csv('/Users/bamdadbooyeh/Documents/BAMDAD BOOYEH FINAL PROJECT/total_death_rate.csv')
+
+# Read life expectancy data 
+time_le_data <- read_csv("/Users/bamdadbooyeh/Documents/BAMDAD BOOYEH FINAL PROJECT/total_Life_expectancy_at_birth.csv")
+
+# Read world data for the year 2023 
+world_data_2023 <- read_csv('/Users/bamdadbooyeh/Documents/BAMDAD BOOYEH FINAL PROJECT/world-data-2023.csv')
+
+#retrieve world map data
+world <- ne_countries(scale = "medium", returnclass = "sf")
+
+# Merge the world map data with the world data for the year 2023
+merged_data <- merge(world, world_data_2023, by.x = "name", by.y = "Country", all.x = TRUE)
+
+
+```
+
+### Countries of the World 2023 Dataset Description
+
+**Dataset basic info** The world_data_2023 dataset include 195 rows (Countries) and 35 variables (columns), The used columns are listed below
+
+**Country**: The name of the country. (Text)
+
+**Population**: The total population of the country. (Numeric)
+
+**Official Language**: The primary language recognized by the country. (Text)
+
+**GDP (Gross Domestic Product)**: The total economic output of the country. (Numeric)
+
+**Life Expectancy**: The average expected lifespan of individuals in the country. (Numeric)
+
+**Minimum Wage**: The minimum remuneration that employers are legally required to pay workers. (Numeric)
+
+**Unemployment Rate**: The percentage of the workforce that is unemployed and actively seeking employment. (Numeric)
+
+**Gross Tertiary Education Enrollment (%)**: The percentage of the population enrolled in tertiary education. (Numeric)
+
+**Physicians per Thousand**: The number of physicians per thousand people in the country. (Numeric)
+
+**Fertility Rate**: The average number of children born to a woman over her lifetime. (Numeric)
+
+Each row in the dataset represents a unique country, providing a comprehensive overview of various socio-economic and demographic factors. This dataset is valuable for conducting research related to global trends, economic analyses, and public health studies.
+
+### Population Collapse Dataset Description
+
+**Dataset basic info**
+
+The second dataset is a comprehensive amalgamation of multiple datasets utilized to construct meaningful timeline plots. This dataset incorporates information from nine distinct sources, of which three datasets—namely `total_birth_rate`, `total_death_rate`, and `total_Life_expectancy_at_birth`—have been selected for detailed analysis. 
+
+These chosen datasets encompass data spanning from the year 2000 to 2021, capturing vital statistics for 266 countries, including entities that may not be officially recognized by the United Nations.
+
+1. **Total Birth Rate**: The total number of live births per 1,000 people in a given year.
+2. **Total Death Rate**: The total number of deaths per 1,000 people in a given year.
+3. **Total Life Expectancy at Birth**: The average number of years a newborn is expected to live, considering the mortality patterns existing at the time of their birth.
+
+The temporal scope, coupled with the extensive coverage of countries, renders this dataset a valuable resource for conducting in-depth analyses of global demographic trends and life expectancy patterns over the specified time frame.
+
+
+```{r, collapse=TRUE}
+
+ #Data Cleaning and Conversion
+
+
+# Clean and convert the 'GDP' column to numeric, removing non-numeric characters
+merged_data$GDP <- as.numeric(gsub("[^0-9.]", "", merged_data$GDP))
+
+# Clean and convert the 'Minimum wage' column to numeric, removing non-numeric characters
+merged_data$`Minimum wage` <- as.numeric(gsub("[^0-9.]", "", merged_data$`Minimum wage`))
+
+# Clean and convert the 'Life expectancy' column to numeric, removing non-numeric characters
+merged_data$`Life expectancy` <- as.numeric(gsub("[^0-9.]", "", merged_data$`Life expectancy`))
+
+# Clean and convert the 'Unemployment rate' column to numeric, removing non-numeric characters
+merged_data$`Unemployment rate` <- as.numeric(gsub("[^0-9.]", "", merged_data$`Minimum wage`))
+
+
+# Clean and convert the 'Gross tertiary education enrollment (%)' column to numeric, removing non-numeric characters
+merged_data$`Gross tertiary education enrollment (%)` <- as.numeric(gsub("[^0-9.]", "", merged_data$`Gross tertiary education enrollment (%)`))
+
+
+
+
+```
+
+# Unveiling Socio-Economic Dynamics: Exploring Life Expectancy, Minimum Wage, and Key Variables Across Nations
+
+## Introduction
+
+In this section, we delve into the intricate relationship between life expectancy and minimum wage, along with other crucial variables such as unemployment rate, population, and GDP across various countries. The visualizations aim to unravel potential correlations and patterns.
+
+## Life Expectancy Choropleth Map
+We start by creating a choropleth map to visualize life expectancy across different countries for the year 2023. The map dynamically represents life expectancy values, allowing for an interactive exploration.
+```{r}
+
+color_limits <- c(50, 85) #based on min and max Life expectancy
+
+# Create an interactive choropleth map
+choropleth_map <- ggplot(merged_data, aes(fill = `Life expectancy`, group = name)) +
+  geom_sf(color = "white", size = 0.2) +
+  scale_fill_viridis_c(
+    name = "Life expectancy",
+    labels = scales::comma,
+    option = "viridis",
+    limits = color_limits,
+    breaks = c(50, 60, 70, 80, 85),
+    direction = -1  
+  ) +
+  labs(title = "Choropleth Map of Life expectancy 2023 (Dynamic)")
+
+# Convert ggplot to plotly
+interactive_choropleth_map <- ggplotly(choropleth_map)
+interactive_choropleth_map
+
+
+
+```
+## Minimum Wage Choropleth Map
+
+A similar choropleth map is generated to illustrate the distribution of minimum wage values across countries in 2023.
+
+
+```{r}
+
+
+# Set the limits and breaks for the color scale
+color_limits <- c(0, 14) 
+
+color_breaks <- seq(0, 14, by = 2)  
+
+# Create an interactive choropleth map for Minimum Wage
+choropleth_map_minimum_wage <- ggplot(merged_data, aes(fill = `Minimum wage`, group = name)) +
+  geom_sf(color = "white", size = 0.2) +
+  scale_fill_viridis_c(
+    name = "Minimum wage",
+    labels = scales::comma,
+    option = "viridis",
+    limits = color_limits,
+    breaks = color_breaks,
+    direction = -1
+  ) +
+  labs(title = "Choropleth Map of Minimum Wage 2023 (Dynamic)")
+
+# Convert ggplot to plotly
+interactive_choropleth_map_minimum_wage <- ggplotly(choropleth_map_minimum_wage)
+interactive_choropleth_map_minimum_wage
+
+```
+## Box Plot: Minimum Wage and Life Expectancy Relationship
+
+To delve deeper into the relationship between minimum wage and life expectancy, a box plot is constructed. The plot groups life expectancy into ranges and provides a visual representation of how minimum wage varies within each group
+
+```{r,warning= F}
+
+
+# Filter out rows with NA in 'Life Expectancy'
+merged_data_no_na <- merged_data[!is.na(merged_data$`Life expectancy`),]
+
+# Create the box plot
+box_plot <- ggplot(merged_data_no_na, aes(x = cut(`Life expectancy`, breaks = 10), y = `Minimum wage`, fill = `Life expectancy`)) +
+  geom_boxplot(alpha = 0.7, color = "darkblue", size = 0.5, outlier.color = "red", outlier.shape = 16, outlier.size = 2) +
+  scale_fill_viridis_c(option = "plasma") +
+  theme_minimal() +
+  labs(title = "Box Plot of Minimum Wage by Life Expectancy",
+       x = "Life Expectancy (Grouped)",
+       y = "Minimum Wage",
+       fill = "Life Expectancy Group") +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1),
+        legend.position = "bottom")
+
+# Convert ggplot to plotly
+interactive_box_plot <- ggplotly(box_plot)
+
+# Show the interactive box plot
+interactive_box_plot
+
+
+
+
+```
+
+The box plot reveals potential trends and variations in minimum wage based on life expectancy groups. It sets the stage for a more detailed exploration of the connection between these two variables.
+
+
+## Scatter Plot: Unemployment Rate's Role
+
+To enrich the narrative, we extend our analysis by incorporating the unemployment rate. A scatter plot is employed to visualize the relationships between minimum wage, life expectancy, and unemployment rate.
+
+
+
+```{r, warning=FALSE}
+
+
+# Use ggplot2 to create a scatter plot
+sc<-ggplot(merged_data, aes(x = `Life expectancy`, y = `Minimum wage`, color = `Unemployment rate`)) +
+  geom_point(size = 3, alpha = 0.5) +
+  scale_color_viridis_c(option = "plasma") +
+  labs(title = "Scatter Plot of Minimum Wage vs. Life Expectancy",
+       x = "Life Expectancy",
+       y = "Minimum Wage",
+       color = "Unemployment Rate")
+# interactive it
+wage_le <- ggplotly(sc)
+
+wage_le
+```
+The scatter plot introduces the unemployment rate as a third variable. We observe how changes in minimum wage and life expectancy correlate with fluctuations in unemployment rate.
+
+
+## Bubble Chart: Comprehensive Overview
+
+Building on the previous visualizations, we present a 3D bubble chart that incorporates minimum wage, GDP, life expectancy, and population (Points Size). This chart aims to provide a comprehensive overview, considering multiple factors simultaneously.
+
+
+```{r, collapse=TRUE,warning=FALSE}
+
+# Create Bubble Chart
+bubble_chart <- plot_ly(
+  data = merged_data,
+  x = ~`Minimum wage`,
+  y = ~GDP,
+  z = ~`Life expectancy`,
+  size = ~Population,  
+  text = ~name,
+  color = ~continent,
+  marker = list(
+    opacity = 0.8,
+    colorscale = 'Viridis',
+    sizemode = "diameter"
+  ),
+  type = "scatter3d",
+  mode = "markers"
+) 
+
+# Explicitly set color and legend group
+for (cont in unique(merged_data$continent)) {
+  subset_data <- merged_data[merged_data$Continent == cont, ]
+  bubble_chart <- add_trace(bubble_chart,
+                            data = subset_data,
+                            x = ~`Minimum wage`,
+                            y = ~GDP,
+                            z = ~`Life expectancy`,
+                            size = ~Population,
+                            text = ~name,
+                            color = ~continent,
+                            colorscale = 'Viridis',
+                            sizemode = "diameter",
+                            type = "scatter3d",
+                            mode = "markers",
+                            legendgroup = cont)
+}
+
+# Set layout
+bubble_chart <- layout(bubble_chart,
+                       scene = list(
+                         xaxis = list(title = "Minimum wage"),
+                         yaxis = list(title = "GDP"),
+                         zaxis = list(title = "Life Expectancy")
+                       ))
+
+# Show the chart
+bubble_chart
+
+```
+## Conclusion 
+
+Our visual analysis supports a positive correlation between minimum wage and life expectancy across countries. The box plot illustrates how minimum wage varies within distinct life expectancy groups. The scatter plot introduces unemployment rate, showing a positive correlation with both minimum wage and life expectancy.
+
+The comprehensive bubble chart adds another layer, considering GDP and population. Through this lens, we identify clusters of countries, reinforcing the intricate connections between minimum wage, life expectancy, and broader economic factors.
+
+This exploration suggests that policies enhancing minimum wage may contribute to improved living standards and positively impact life expectancy. However, recognizing the complexity and potential influence of external factors is crucial.
+
+
+
+
+# Birth Rate and Its Influencing Factors
+
+## Introduction
+
+In this exploration, we aim to uncover the intricate connections between birth rates and crucial socio-economic factors. Through various visualizations, our goal is to reveal potential patterns and correlations, offering valuable insights into the dynamics that shape birth rates. Let's dive into the data and unravel the story it tells about the complex interplay of socio-economic elements influencing birth rates.
+
+
+## KDE Plot of Birth Rate vs. Minimum Wage
+
+
+```{r, collapse=TRUE}
+
+# Select relevant columns and drop NA values
+birth_wage <- merged_data %>%
+  select(`Birth Rate`, `Minimum wage`) %>%
+  drop_na()
+
+# KDE plot with filled contours and no legend
+kde_plot <- ggplot(birth_wage, aes(x = `Birth Rate`, y = `Minimum wage`)) +
+  geom_density_2d_filled(color = "white", bins = 20) +
+  labs(title = "KDE Plot of Birth Rate vs. Minimum Wage",
+       x = "Birth Rate",
+       y = "Minimum Wage") +
+  theme_minimal() +
+  guides(fill = FALSE)  # Remove legend
+
+# Display the KDE plot
+print(kde_plot)
+```
+
+
+
+```
+
+The KDE plot vividly visualizes the negative correlation between these two variables. As we explore, we observe that higher minimum wages are associated with lower birth rates. Additionally, by examining the density contours, we can see not only the strength and direction of the correlation but also the concentration of data points, providing insights into the distribution of birth rates and minimum wages across the observed range.
+
+## Hexbin Plot of Birth Rate vs. Education Enrollment
+
+
+```{r, warning=FALSE}
+# Filter out rows with missing values in the selected variables
+correlogram_data <- merged_data %>%
+  filter(!is.na(`Birth Rate`) & !is.na(`Gross tertiary education enrollment (%)`))
+
+# Create a hexbin plot
+hexbin_plot <- ggplot(correlogram_data, aes(x = `Birth Rate`, y = `Gross tertiary education enrollment (%)`)) +
+  geom_hex(bins = 30) +
+  scale_fill_viridis_c() +
+  labs(title = "Hexbin Plot of Birth Rate vs. Education Enrollment",
+       x = "Birth Rate",
+       y = "Gross tertiary education enrollment (%)") +
+  theme_minimal()
+
+# Convert the ggplot object to a plotly object
+hexbin_plotly <- ggplotly(hexbin_plot)
+
+# Display the interactive hexbin plot
+hexbin_plotly
+
+
+```
+We shift our focus to the relationship between birth rate and gross tertiary education enrollment. The hexbin plot now comes into play, showcasing a negative correlation. Countries with higher education enrollment tend to exhibit lower birth rates.
+ 
+## Scatter Plot with Regression Line: Tertiary Education Enrollment vs. Minimum Wage
+
+
+To add another layer to our narrative, we investigate the positive correlation between tertiary education enrollment and minimum wage. The scatter plot, accompanied by a line of best fit, illustrates this relationship.
+
+
+```{r, message=FALSE, warning=FALSE}
+
+# Scatter Plot with Line of Best Fit
+# Scatter Plot with Line of Best Fit
+scatter_fit_plot <- ggplot(merged_data, aes(x = `Gross tertiary education enrollment (%)`, y = `Minimum wage`)) +
+  geom_point(alpha = 0.7, size = 3) +  # Added transparency and adjusted point size for better visualization
+  geom_smooth(method = "lm", se = FALSE, color = "red", linetype = "dashed", size = 1) +  # Adjusted line aesthetics
+  labs(title = "Scatter Plot with Regression Line: Tertiary Education Enrollment vs. Minimum Wage",
+       x = "Tertiary Education Enrollment (%)",
+       y = "Minimum Wage") +
+  theme_minimal()  # Applied a minimal theme for clarity
+
+# Show the scatter plot with line of best fit
+scatter_fit_plot
+
+
+
+
+```
+
+## Word Cloud Analysis: Exploring the Impact of Tertiary Education Expansion on Fertility
+
+To complement our investigation into the socio-economic factors influencing birth rates, we turn our attention to a qualitative analysis. The following code generates a word cloud based on a research document titled "Does tertiary education expansion affect the fertility of women past the college-entry age?".
+
+```{r, message=FALSE, warning=FALSE}
+
+tertiary_birth <- readLines("Downloads/tertiary_birth.rtf")
+
+docs <- Corpus(VectorSource(tertiary_birth))
+docs <- docs %>%
+  tm_map(removeNumbers) %>%
+  tm_map(removePunctuation) %>%
+  tm_map(stripWhitespace)
+docs <- tm_map(docs, content_transformer(tolower))
+docs <- tm_map(docs, removeWords, stopwords("english"))
+dtm <- TermDocumentMatrix(docs)
+matrix <- as.matrix(dtm) 
+words <- sort(rowSums(matrix),decreasing=TRUE) 
+df <- data.frame(word = names(words),freq=words)
+
+set.seed(100)
+wordcloud(words = df$word, freq = df$freq, min.freq = 1, 
+          max.words=100, random.order=FALSE, rot.per=0.1,
+          colors=brewer.pal(8, "Dark2"))
+
+```
+
+
+This word cloud visually represents the most prominent terms in the research document, shedding light on the key topics and themes related to the impact of tertiary education expansion on the fertility of women beyond the college-entry age. By juxtaposing these qualitative insights with our quantitative analyses, we aim to gain a comprehensive understanding of the multi-faceted dynamics influencing birth rates.
+
+
+## Conclusion
+
+Our exploration into birth rates and socio-economic factors unravels significant insights. The KDE plot suggests a negative correlation between birth rates and minimum wage, while the hexbin plot highlights a similar trend with gross tertiary education enrollment. The scatter plot reinforces a positive correlation between tertiary education enrollment and minimum wage.
+
+
+The comprehensive analysis underscores the nuanced relationships between birth rates and socio-economic factors. As we navigate this intricate landscape, it becomes evident that understanding birth rates requires considering the synergies and tensions among various elements, from minimum wage and education enrollment to the qualitative insights extracted from research documents. These insights contribute to a more profound comprehension of the complex forces that shape demographic trends globally
+
+
+
+# Exploring Temporal Trends: Birth, Death, and Life Expectancy Analysis
+
+## Introduction
+In this section, we delve into temporal trends related to birth rates, death rates, and life expectancy. The visualizations aim to capture the dynamics of these demographic indicators over time.
+
+## Mean Life Expectancy Over Time
+
+
+```{r}
+
+# Melt the data frame for better plotting
+melted_data_le <- time_le_data %>%
+  pivot_longer(cols = starts_with("YR"), names_to = "Year", values_to = "Life_Expectancy")
+
+# Convert Year to numeric for proper sorting
+melted_data_le$Year <- as.numeric(gsub("YR", "", melted_data_le$Year))
+
+# Convert Life Expectancy to numeric
+melted_data_le$Life_Expectancy <- as.numeric(as.character(melted_data_le$Life_Expectancy))
+
+# Handle zero values by replacing them with NA
+melted_data_le$Life_Expectancy[melted_data_le$Life_Expectancy == 0] <- NA
+
+# Calculate mean life expectancy for each year
+mean_le_data <- melted_data_le %>%
+  group_by(Year) %>%
+  summarise(Mean_Life_Expectancy = mean(Life_Expectancy, na.rm = TRUE))
+
+# Create an interactive time series plot for mean life expectancy
+plot_le <- plot_ly(mean_le_data, x = ~Year, y = ~Mean_Life_Expectancy,
+                   type = 'scatter', mode = 'lines', line = list(width = 1))
+
+# Customize layout
+layout_le <- list(
+  title = "Mean Life Expectancy Over Time",
+  xaxis = list(title = "Year"),
+  yaxis = list(title = "Mean Life Expectancy"),
+  showlegend = FALSE
+)
+
+# Display the plot
+fig_le <- plotly::layout(plot_le, layout_le)
+fig_le
+
+
+```
+We start by examining the mean life expectancy over different years. 
+The interactive time series plot visualizes how life expectancy has changed, revealing a substantial decrease in 2019. This intriguing observation prompts us to explore further.
+
+
+## Birth and Death Rates Over Time
+
+Motivated by the significant drop in life expectancy in 2019, we extend our exploration to birth and death rates. 
+
+
+```{r}
+
+# Melt the data frame for better plotting - Birth Rates
+melted_data_birth <- time_birth_data %>%
+  pivot_longer(cols = starts_with("YR"), names_to = "Year", values_to = "Birth_Rate")
+
+# Convert Year to numeric for proper sorting
+melted_data_birth$Year <- as.numeric(gsub("YR", "", melted_data_birth$Year))
+
+# Convert Birth Rate to numeric
+melted_data_birth$Birth_Rate <- as.numeric(as.character(melted_data_birth$Birth_Rate))
+
+# Calculate mean birth rate for each year
+mean_birth_data <- melted_data_birth %>%
+  group_by(Year) %>%
+  summarise(Mean_Birth_Rate = mean(Birth_Rate, na.rm = TRUE))
+
+
+# Melt the data frame for better plotting - Death Rates
+melted_data_death <- time_death_data %>%
+  pivot_longer(cols = starts_with("YR"), names_to = "Year", values_to = "Death_Rate")
+
+# Convert Year to numeric for proper sorting
+melted_data_death$Year <- as.numeric(gsub("YR", "", melted_data_death$Year))
+
+# Convert Death Rate to numeric
+melted_data_death$Death_Rate <- as.numeric(as.character(melted_data_death$Death_Rate))
+
+# Calculate mean death rate for each year
+mean_death_data <- melted_data_death %>%
+  group_by(Year) %>%
+  summarise(Mean_Death_Rate = mean(Death_Rate, na.rm = TRUE))
+
+# Merge the mean birth and death data
+merged_data2 <- merge(mean_birth_data, mean_death_data, by = "Year", all = TRUE)
+
+# Create an interactive plot
+plot_rates <- plot_ly(merged_data2, x = ~Year) %>%
+  add_lines(y = ~Mean_Birth_Rate, name = "Birth Rate", line = list(color = "blue", width = 1.2)) %>%
+  add_lines(y = ~Mean_Death_Rate, name = "Death Rate", line = list(color = "red", width = 1.2)) %>%
+  layout(
+    title = "Mean Birth and Death Rates Over Time",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Mean Rate"),
+    showlegend = TRUE
+  )
+
+# Display the interactive plot
+plot_rates
+
+# Melt the data frame for better plotting - Life Expectancy
+melted_data_le <- time_le_data %>%
+  pivot_longer(cols = starts_with("YR"), names_to = "Year", values_to = "Life_Expectancy")
+
+# Convert Year to numeric for proper sorting
+melted_data_le$Year <- as.numeric(gsub("YR", "", melted_data_le$Year))
+
+# Convert Life Expectancy to numeric
+melted_data_le$Life_Expectancy <- as.numeric(as.character(melted_data_le$Life_Expectancy))
+
+# Calculate mean life expectancy for each year
+mean_le_data <- melted_data_le %>%
+  group_by(Year) %>%
+  summarise(Mean_Life_Expectancy = mean(Life_Expectancy, na.rm = TRUE))
+
+# Merge the mean birth, death, and life expectancy data
+merged_data3 <- merge(merged_data2, mean_le_data, by = "Year", all = TRUE)
+
+# Create an interactive plot
+plot_rates <- plot_ly(merged_data3, x = ~Year) %>%
+  add_lines(y = ~Mean_Birth_Rate, name = "Birth Rate", line = list(color = "blue", width = 1.2)) %>%
+  add_lines(y = ~Mean_Death_Rate, name = "Death Rate", line = list(color = "red", width = 1.2)) %>%
+  add_lines(y = ~Mean_Life_Expectancy, name = "Life Expectancy", line = list(color = "green", width = 1.2)) %>%
+  layout(
+    title = "Mean Birth, Death, and Life Expectancy Over Time",
+    xaxis = list(title = "Year"),
+    yaxis = list(title = "Mean Rate/Expectancy"),
+    showlegend = TRUE
+  )
+
+# Display the interactive plot
+plot_rates
+```
+
+Our investigation unfolds a compelling narrative, marked by a consistent decline in birth rates since the turn of the millennium in 2000.
+
+This extended decline prompts reflection on changing societal norms and evolving views towards family planning
+
+Moreover, our exploration brings to light a noteworthy decrease in death rates, particularly evident post-2019.
+
+
+
+## Conclusion
+
+Our journey through time reveals interesting trends.
+In 2019, there was a significant drop in average life expectancy. Looking closer at birth and death rates, we see a consistent decline in births since 2000 and a noticeable decrease in death rates after the 2019 pandemic.
+
+These demographic changes suggest that external factors, like the COVID-19 pandemic, play a big role in how our population evolves. This exploration helps us understand demographic trends better and highlights the complex influences that shape our population over the years.
+
+
+
+
+# Interesting Visuals: Discovering Fascinating Patterns
+
+## Global Language Landscape: Top 15 Spoken Languages
+
+### Description
+
+In this part we explores the linguistic diversity across countries by visualizing the top 15 spoken languages based on their total population. 
+
+The bar plot showcases the prevalence of each language, with the height of each bar representing the total population of countries where the language is spoken.
+
+The numbers on top of the bars indicate the count of countries using each language, providing additional insights into the geographical distribution of linguistic communities. 
+
+This visualization offers a snapshot of the global linguistic landscape and highlights the prominence of specific languages in terms of both population and country count.
+
+```{r, collapse=TRUE}
+
+# Filter out rows where Official language is 'None'
+world_data_2023_filtered <- subset(world_data_2023, `Official language` != 'None')
+
+# Sum the population for each language
+language_populations <- aggregate(Population ~ `Official language`, data = world_data_2023_filtered, sum)
+
+# Sort the dataset by the total population for each language
+language_populations <- language_populations[order(language_populations$Population, decreasing = TRUE), ]
+
+# Select the top 15 languages
+top_languages <- head(language_populations, 15)
+
+# Count the number of countries for each language
+country_counts <- aggregate(Country ~ `Official language`, data = world_data_2023_filtered, function(x) length(unique(x)))
+
+# Merge top_languages with country_counts
+top_languages_with_counts <- merge(top_languages, country_counts, by = "Official language")
+
+# Create a bar plot with country counts and magma colors
+ggplot(top_languages_with_counts, aes(x = reorder(`Official language`, -Population), y = Population, fill = `Official language`)) +
+  geom_bar(stat = "identity") +
+  geom_text(aes(label = Country), vjust = -0.5, size = 3, color = "black", position = position_stack(vjust = 0.5)) +  # Add text labels for country count
+  labs(title = "Top 15 Spoken Languages by Total Population",
+       x = "Official Language",
+       y = "Total Population",
+       fill = "Official Language") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) + 
+  guides(fill = FALSE)
+
+
+```
+
+
+## Exploring Country Frequencies by Continent
+
+### Description
+This code generates an interactive donut plot displaying country frequencies by continent. The dynamic visualization not only offers insights into the distribution of countries across different continents but also allows for a more detailed exploration. By clicking on any continent, you can access information on the specific number of countries included, adding an interactive element to enhance your exploration of the dataset.
+```{r}
+
+# Create a table of frequencies
+frequency_table <- table(merged_data$continent)
+
+# Convert the table to a data frame
+frequency_df <- as.data.frame(frequency_table)
+frequency_df$continent <- rownames(frequency_df)
+
+# Create an interactive donut plot 
+plot_ly(
+  data = frequency_df,
+  labels = ~Var1,
+  values = ~Freq,
+  type = 'pie',
+  hole = 0.4,  # Set hole size for the donut effect
+  textinfo = 'percent+label',
+  marker = list(
+    colors = scales::viridis_pal()(length(frequency_df$continent)),
+    line = list(color = 'white', width = 2)
+  )
+) %>%
+  layout(
+    title = "Country Frequencies by Continent(Dynamic)",
+    annotations = list(
+      text = paste("Total: ", sum(frequency_df$Freq)),
+      x = 0.5,
+      y = 0.5,
+      font = list(size = 15)
+    ),
+    showlegend = FALSE  
+  )
+```
+
+
+
+
+## Radar Chart - Multivariate Comparison by Continent
+
+### Description
+The radar chart compares average values of key socio-economic indicators (unemployment rate, physicians per thousand, minimum wage, and fertility rate) across continents. It provides a visual summary of the diverse socio-economic landscapes, highlighting variations and trends among continents.
+
+
+
+``` {r, collapse=TRUE}
+
+# Specify custom order for continent levels
+continent_order <- c("Asia", "Europe", "Africa", "North America", "South America", "Oceania")
+
+# Filter and aggregate data
+
+
+# Calculate the mean values for each variable by continent
+radar_data <- aggregate(cbind(`Unemployment rate`, 
+                               `Physicians per thousand`, 
+                               `Minimum wage`,
+                               `Fertility Rate`) ~ continent,
+                        data = merged_data, 
+                        mean, 
+                        na.rm = TRUE)
+
+# Reorder the levels of the continent variable
+radar_data$continent <- factor(radar_data$continent, levels = continent_order)
+
+# Create a radar chart
+ggradar(radar_data,
+        grid.min = 0, 
+        grid.max =5, 
+        grid.mid = 2.5,
+        values.radar = c("0", "2.5", "5"), # the labels of the grid
+        group.point.size = 0.05,
+        group.line.width = 2,
+        plot.extent.x.sf = 0.9,
+        plot.extent.y.sf = 1.5) +
+  ggtitle("Multivariate Comparison by Continent (Average)") +
+  theme(legend.position = "bottom")  # Adjust legend position
+
+```
+
+### Conclusion
+
+By looking through our radar chart we can see that, Oceania takes the spotlight, flaunting the highest minimum wage and unemployment rate, intertwining with our earlier findings on their positive correlation. 
+
+Europe steps onto the stage, boasting the highest number of physicians per thousand and, surprisingly, the least fertility rate. 
+
+Africa, standing out with the highest fertility rate, presents a unique contrast by showcasing the least rates in other variables. This unexpected twist deepens our understanding of global socio-economic dynamics.
+
+The remaining continents contribute to the intricate mosaic, revealing similarities in the analyzed indicators.
+
+Our exploration unfolds, weaving a captivating narrative of diversity and interconnections across the globe.
